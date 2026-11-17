@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sepeda Bentuk Ceria</title>
+<style>
+  :root { --ink:#17324d; --blue:#19a7ce; --yellow:#ffd447; --green:#42c77a; }
+  * { box-sizing:border-box }
+  body { margin:0; font-family:system-ui,Arial,sans-serif; color:var(--ink); background:linear-gradient(#b9efff,#e9fbff 55%,#b8e8a5); }
+  #app { min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:14px; gap:10px }
+  header { width:min(1100px,100%); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap }
+  h1 { margin:0; font-size:clamp(22px,4vw,34px); color:#075985; text-shadow:0 2px white }
+  .pill { background:white; border:2px solid #c5edfa; border-radius:999px; padding:8px 13px; font-weight:700 }
+  #gameWrap { position:relative; width:min(1100px,100%); aspect-ratio:16/9; min-height:340px; border:5px solid white; border-radius:24px; overflow:hidden; box-shadow:0 12px 30px #397b9a44; background:#8de2ff }
+  canvas { display:block; width:100%; height:100% }
+  #hud { position:absolute; top:12px; left:12px; right:12px; display:flex; justify-content:space-between; gap:8px; pointer-events:none; flex-wrap:wrap }
+  .hudbox { background:#ffffffdf; border-radius:14px; padding:8px 12px; font-weight:800; box-shadow:0 3px 8px #24556b22 }
+  #prompt { position:absolute; top:64px; left:50%; transform:translateX(-50%); background:#fff4b8; border:3px solid white; border-radius:18px; padding:8px 18px; font-weight:900; font-size:clamp(16px,2.5vw,24px); text-align:center; white-space:nowrap; max-width:94%; }
+  #overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#073b5b99; padding:14px }
+  .panel { background:#fff; border:4px solid #ffe16b; border-radius:22px; padding:20px; width:min(540px,96%); text-align:center; box-shadow:0 12px 30px #1238 }
+  .panel h2 { margin:0 0 8px; font-size:clamp(23px,4vw,34px); color:#087ca5 }
+  .panel p { margin:8px 0 14px; line-height:1.45 }
+  button { border:0; border-radius:14px; padding:11px 16px; margin:4px; background:#0c9dc4; color:white; font-weight:800; font-size:15px; cursor:pointer; box-shadow:0 4px 0 #08718e }
+  button.secondary { background:#ffb82e; color:#523600; box-shadow:0 4px 0 #cf8710 }
+  button.ghost { background:#e8f7fc; color:#075985; box-shadow:none; border:2px solid #b7e5f3 }
+  button:disabled { opacity:.5; cursor:not-allowed }
+  #controls { width:min(1100px,100%); display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:7px }
+  #status { font-size:13px; color:#31576a; text-align:center; min-height:20px }
+  .shapeLegend { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; font-size:13px; font-weight:700 }
+  .shapeLegend span { background:#ffffffcc; border-radius:12px; padding:6px 10px }
+  @media(max-width:600px) { #gameWrap { min-height:300px; aspect-ratio:4/3 } #prompt { top:62px; white-space:normal } }
+  /* Tropical arcade skin */
+  body { background:radial-gradient(ellipse at top,#246d46,#092c25 75%); color:#fff5d5 }
+  #app { padding:16px; gap:12px }
+  header { width:min(1100px,100%) }
+  h1 { color:#fff4b0; text-shadow:0 3px 0 #164d32; font-weight:950 }
+  .pill { background:#163c2dde; color:#d9ffc0; border-color:#588c49 }
+  #gameWrap { border:4px solid #c5dc81; border-radius:22px; box-shadow:0 18px 60px #001b20aa; background:#b9e9c7 }
+  #hud { top:16px; left:78px; right:16px; justify-content:flex-end }
+  .hudbox { background:#183b24b8; color:white; border:1px solid #e5ffb335; border-radius:12px; font-size:clamp(13px,2vw,22px); text-shadow:0 2px 2px #17381b; box-shadow:0 4px 0 #092d2844 }
+  #score { color:#ffe14d; font-variant-numeric:tabular-nums }
+  #prompt { top:76px; background:linear-gradient(#fff6bd,#ffda65); color:#5a380c; border-color:#fff4c6; box-shadow:0 5px 0 #8b651b55; font-size:clamp(14px,2vw,21px) }
+  #overlay { background:linear-gradient(0deg,#082e33b0,#143f2244); backdrop-filter:blur(3px) }
+  .panel { background:linear-gradient(150deg,#fffdeb,#ecf4cf); color:#34503b; border-color:#ffcf49; box-shadow:0 12px 0 #123e3866,0 24px 70px #052b3a66 }
+  .panel h2 { color:#267343 }
+  button { background:linear-gradient(#58c85d,#269149); box-shadow:0 4px 0 #17653c; border:1px solid #a3e687 }
+  button.ghost { background:#194a39; color:#f6ffd8; border-color:#54895b; box-shadow:0 3px 0 #082f28 }
+  .shapeLegend span { background:#285d43; color:#f4ffd7 }
+  .panel .shapeLegend span { background:#e0edc4; color:#385333 }
+  #status { color:#c1dcb8 }
+  #homeBtn { position:absolute; top:72px; left:12px; width:52px; height:52px; margin:0; padding:0; background:linear-gradient(#ffcf59,#ef8f1b); border:3px solid #f5f1d6; box-shadow:0 3px 0 #9b5313; font-size:26px; z-index:2 }
+  #pauseBtn { position:absolute; top:12px; left:12px; width:52px; height:52px; margin:0; padding:0; background:linear-gradient(#6dc6e4,#237eaa); border:3px solid #f5f1d6; box-shadow:0 3px 0 #164760; font-size:24px; z-index:2 }
+  .numBtn { min-width:76px; min-height:64px; font-size:32px; font-weight:950; padding:6px 18px; font-variant-numeric:tabular-nums }
+  @media(max-width:600px) { #app {padding:8px} #gameWrap {aspect-ratio:2/3; min-height:480px} #hud {gap:5px;left:70px;right:8px;top:14px} .hudbox {padding:7px;font-size:13px} #prompt {top:78px;width:max-content;max-width:90%} header h1 {font-size:23px} .pill {font-size:12px} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>🚲 Sepeda Bentuk Ceria</h1><div class="pill" id="modePill">Mode: Tombol</div></header>
+  <div id="gameWrap">
+    <button id="pauseBtn" aria-label="Jeda permainan" title="Jeda / lanjut">Ⅱ</button>
+    <button id="homeBtn" aria-label="Kembali ke menu utama" title="Kembali ke menu utama">⌂</button>
+    <div id="hud">
+      <div class="hudbox">⭐ Skor: <span id="score">0</span></div>
+      <div class="hudbox">🏁 Jarak: <span id="distance">0</span></div>
+      <div class="hudbox">❤️ Nyawa: <span id="lives">3</span></div>
+    </div>
+    <div id="prompt">Bersiap menjadi pemburu bentuk!</div>
+    <div id="overlay">
+      <div class="panel" id="panel">
+        <h2>Siap Bersepeda?</h2>
+        <p>Pilih bentuk yang disebutkan suara. Belok ke jalur kiri atau kanan untuk mengambil benda yang cocok. Hindari benda yang tidak cocok!</p>
+        <p><b>Kode tombol:</b> <b>1</b> = belok kiri, <b>2</b> = belok kanan, <b>3</b> = kayuh. Atau pakai Arduino: magnet mengayuh sepeda lebih cepat.</p>
+        <button id="connectBtn" class="secondary">🔌 Sambungkan Arduino</button>
+        <button id="manualBtn">▶ Main dengan Tombol</button>
+        <div class="shapeLegend"><span>🟠 Lengkung: bola / jeruk / bumi / donat</span><span>🟦 Segi empat: lemari / buku / figura / pintu</span><span>🔺 Segitiga: semangka / pizza / kue / penggaris</span></div>
+        <p style="font-size:12px;color:#557">Arduino bisa dicolok langsung ke USB IFP (Google Chrome) atau ke komputer. Tekan Sambungkan Arduino lalu pilih Arduino Uno.</p>
+      </div>
+    </div>
+  </div>
+  <div id="controls">
+    <button class="ghost numBtn" id="leftBtn" aria-label="Tombol 1" title="Tombol 1">1</button>
+    <button class="ghost numBtn" id="rightBtn" aria-label="Tombol 2" title="Tombol 2">2</button>
+    <button class="ghost numBtn" id="pedalBtn" aria-label="Tombol 3" title="Tombol 3">3</button>
+    <button class="ghost" id="repeatBtn">🔊 Ulangi instruksi</button>
+    <button class="ghost" id="restartBtn">↻ Mulai ulang</button>
+    <button class="secondary" id="menuBtn">⌂ Kembali ke menu utama</button>
+  </div>
+  <div class="shapeLegend"><span>🟠 Lengkung</span><span>🟦 Segi empat</span><span>🔺 Segitiga</span></div>
+  <div id="status">Mode tombol aktif. Tekan 1 untuk belok kiri, 2 untuk belok kanan, 3 untuk mengayuh.</div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const wrap = document.getElementById('gameWrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xb5e8cf);
+scene.fog = new THREE.Fog(0xb5e8cf, 18, 70);
+const camera = new THREE.PerspectiveCamera(58, 16/9, 0.1, 120);
+camera.position.set(0, 6.2, 12);
+camera.lookAt(0, 1.1, -10);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+wrap.insertBefore(renderer.domElement, wrap.firstChild);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x5b8b55, 2.0));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.position.set(-5,12,8); sun.castShadow = true; scene.add(sun);
+
+const mat = (c, rough=.8) => new THREE.MeshStandardMaterial({color:c, roughness:rough});
+const grass = new THREE.Mesh(new THREE.PlaneGeometry(200,120), mat(0x55c66c));
+grass.rotation.x=-Math.PI/2; grass.position.y=-.12; grass.position.z=-25; grass.receiveShadow=true; scene.add(grass);
+
+// Dua jalur seperti endless runner
+const roadMat = mat(0xdca35b), lineMat = mat(0xffd26d);
+const road = new THREE.Mesh(new THREE.PlaneGeometry(8.2,110), roadMat);
+road.rotation.x=-Math.PI/2; road.position.set(0,0,-35); road.receiveShadow=true; scene.add(road);
+for (const x of [-2.05,2.05]) {
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(.09,.035,110), lineMat);
+  stripe.position.set(x,.025,-35); scene.add(stripe);
+}
+const dashMat=mat(0xffe27a);
+const dashes=[];
+for(let z=8;z>-65;z-=5){
+  const d=new THREE.Mesh(new THREE.BoxGeometry(.12,.04,2.2),dashMat);
+  d.position.set(0,.04,z); scene.add(d); dashes.push(d);
+}
+// scenery: stylized trees and clouds
+const trees=[];
+function tree(x,z){
+ const g=new THREE.Group();
+ const height=5+Math.random()*2;
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.22,.42,height,6),mat(0x86602c)); trunk.position.y=height/2; trunk.rotation.z=x<0?-.1:.1; trunk.castShadow=true; g.add(trunk);
+ for(let i=0;i<7;i++){
+  const leaf=new THREE.Mesh(new THREE.SphereGeometry(1,5,3),mat([0x6fae13,0x91c923,0x388a25][i%3]));
+  const angle=i*Math.PI*2/7;
+  leaf.scale.set(.66,.16,2.35);leaf.rotation.set(.28,angle,0);
+  leaf.position.set(Math.sin(angle)*1.35,height-.15,Math.cos(angle)*1.35);leaf.castShadow=true;g.add(leaf);
+ }
+ for(let i=0;i<5;i++){
+  const bush=new THREE.Mesh(new THREE.IcosahedronGeometry(.85,0),mat(i%2?0x479d27:0x7aba26));
+  bush.position.set(Math.sin(i*2)*1.1,.4,Math.cos(i*2));bush.scale.set(1,.7,1);g.add(bush);
+ }
+ g.position.set(x,0,z); scene.add(g); trees.push(g);
+}
+for(let z=5;z>-65;z-=7){tree(-6.2,z);tree(6.2,z-3)}
+const clouds=[];
+for(let i=0;i<7;i++){
+ const g=new THREE.Group();
+ for(let j=0;j<4;j++){const p=new THREE.Mesh(new THREE.SphereGeometry(.7,10,8),mat(0xffffff));p.position.set(j*.75,.25*Math.sin(j),0);g.add(p)}
+ g.position.set((Math.random()-.5)*18,7+Math.random()*3,-Math.random()*55);scene.add(g);clouds.push(g);
+}
+
+// Orange track borders and repeating raised panels, outside the playable lanes.
+for(const side of [-1,1]){
+ const rail=new THREE.Mesh(new THREE.BoxGeometry(.32,.45,110),mat(0xff851c));
+ rail.position.set(side*4.15,.18,-35);rail.receiveShadow=true;scene.add(rail);
+ for(let z=8;z>-65;z-=5){
+  const panel=new THREE.Group();
+  const wall=new THREE.Mesh(new THREE.BoxGeometry(.25,.85,3.8),mat(0xf57616));wall.position.y=.42;wall.castShadow=true;panel.add(wall);
+  const rim=new THREE.Mesh(new THREE.BoxGeometry(.38,.12,4),mat(0xffbb42));rim.position.y=.9;panel.add(rim);
+  panel.position.set(side*4.4,0,z);scene.add(panel);dashes.push(panel);
+ }
+}
+// Complete third-person bicycle and cartoon rider.
+const rider=new THREE.Group();
+const black=mat(0x24313d), red=mat(0xff563d), silver=mat(0xcbd9e2);
+const bar=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,2.7,12),silver);
+bar.rotation.z=Math.PI/2; bar.position.y=1.25; rider.add(bar);
+for(const x of [-1.35,1.35]){
+ const grip=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.75,12),black);
+ grip.rotation.z=Math.PI/2; grip.position.set(x,1.25,0); rider.add(grip);
+ const cap=new THREE.Mesh(new THREE.SphereGeometry(.18,10,8),red);cap.position.set(x*1.25,1.25,0);rider.add(cap);
+}
+const stem=new THREE.Mesh(new THREE.CylinderGeometry(.09,.13,.75,10),silver);stem.position.set(0,.85,.2);rider.add(stem);
+const bell=new THREE.Mesh(new THREE.SphereGeometry(.16,12,8),mat(0xffd447));bell.position.set(.35,1.42,-.05);rider.add(bell);
+// Reuse the original handlebar, scaled to the bicycle.
+for(const part of rider.children){part.position.multiplyScalar(.45);part.position.y+=.8;part.position.z-=.65;part.scale.multiplyScalar(.45);}
+function tube(a,b,r,material,parent=rider){
+ const start=new THREE.Vector3(...a),end=new THREE.Vector3(...b),delta=end.clone().sub(start);
+ const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,delta.length(),8),material);
+ mesh.position.copy(start.add(end).multiplyScalar(.5));mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());mesh.castShadow=true;parent.add(mesh);return mesh;
+}
+const wheels=[];
+for(const z of [-.85,.85]){
+ const wheel=new THREE.Group();wheel.position.set(0,.52,z);
+ const tire=new THREE.Mesh(new THREE.TorusGeometry(.47,.075,8,20),black);tire.rotation.y=Math.PI/2;wheel.add(tire);
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(.38,.025,6,20),silver);rim.rotation.y=Math.PI/2;wheel.add(rim);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;tube([0,0,0],[0,Math.cos(a)*.38,Math.sin(a)*.38],.012,silver,wheel);}
+ rider.add(wheel);wheels.push(wheel);
+}
+for(const [a,b] of [ [[0,.52,.85],[0,1.18,.3]], [[0,1.18,.3],[0,.55,0]], [[0,.55,0],[0,.52,.85]], [[0,1.18,.3],[0,1.28,-.65]], [[0,1.28,-.65],[0,.55,0]], [[0,1.28,-.65],[0,.52,-.85]] ])tube(a,b,.055,red);
+const saddle=new THREE.Mesh(new THREE.BoxGeometry(.4,.12,.45),black);saddle.position.set(0,1.25,.35);rider.add(saddle);
+const skin=mat(0xffc38e),shirt=mat(0xfff4d9),pants=mat(0x2679bf);
+const torso=new THREE.Mesh(new THREE.CylinderGeometry(.25,.29,.65,7),shirt);torso.position.set(0,1.83,.2);torso.rotation.x=-.2;torso.castShadow=true;rider.add(torso);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.27,12,9),skin);head.position.set(0,2.38,.08);rider.add(head);
+const helmet=new THREE.Mesh(new THREE.SphereGeometry(.3,12,8,0,Math.PI*2,0,Math.PI/2),red);helmet.position.set(0,2.43,.08);helmet.castShadow=true;rider.add(helmet);
+for(const side of [-1,1]){
+ tube([side*.23,2.05,.12],[side*.48,1.4,-.65],.085,skin);
+ tube([side*.17,1.53,.3],[side*.24,.94,.1],.12,pants);
+ tube([side*.24,.94,.1],[side*.24,.65,.45],.085,skin);
+ const shoe=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.38),black);shoe.position.set(side*.24,.63,.35);rider.add(shoe);
+}
+rider.position.set(0,0,5); scene.add(rider);
+
+// collectible / obstacle objects
+const items=[];
+const shapes=['oval','square','triangle'];
+const examples={oval:['bola','jeruk','bumi','donat'],square:['lemari','buku','figura','pintu'],triangle:['semangka','pizza','potongan kue','penggaris segitiga']};
+function makeShape(type,variant=Math.floor(Math.random()*4)){
+ const token=new THREE.Group();token.userData.name=examples[type][variant];
+ function part(geo,color,x=0,y=0,z=0){const mesh=new THREE.Mesh(geo,mat(color,.55));mesh.position.set(x,y,z);mesh.castShadow=true;token.add(mesh);return mesh;}
+ function box(w,h,d,c,x=0,y=0,z=0){return part(new THREE.BoxGeometry(w,h,d),c,x,y,z);}
+ function ball(r,c,x=0,y=0,z=0){return part(new THREE.SphereGeometry(r,16,12),c,x,y,z);}
+ function ring(r,t,c,z=0){return part(new THREE.TorusGeometry(r,t,8,24),c,0,0,z);}
+ function triangle(size,depth,color,z=0,hole=false){
+  const shape=new THREE.Shape();shape.moveTo(-size*.65,-size*.5);shape.lineTo(size*.65,-size*.5);shape.lineTo(0,size*.65);shape.closePath();
+  if(hole){const path=new THREE.Path();path.moveTo(-size*.28,-size*.27);path.lineTo(0,size*.23);path.lineTo(size*.28,-size*.27);path.closePath();shape.holes.push(path);}
+  return part(new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false}),color,0,0,z-depth/2);
+ }
+ if(type==='oval'){
+  if(variant===0){ball(.61,0xfaf4da);for(const [x,y] of [[0,0],[-.35,.28],[.35,.28],[-.28,-.35],[.28,-.35]]){const patch=part(new THREE.CircleGeometry(.14,5),0x243b54,x,y,.61-Math.abs(x)*.25);}}
+  if(variant===1){ball(.6,0xff9318);const leaf=ball(.18,0x39972b,.16,.58,0);leaf.scale.set(1.4,.4,.7);box(.06,.16,.06,0x755024,0,.62);}
+  if(variant===2){ball(.62,0x258ee0);for(const [x,y,s] of [[-.22,.25,.23],[.2,-.2,.26],[.27,.35,.15]]){const land=ball(s,0x65bc42,x,y,.49);land.scale.set(.8,1.3,.3);}const equator=ring(.625,.012,0xa5dbec);equator.rotation.x=Math.PI/2;}
+  if(variant===3){ring(.4,.21,0xc97b32);ring(.4,.16,0xff85ad,.13);for(let i=0;i<12;i++){const a=i*Math.PI/6;const sprinkle=box(.075,.025,.025,[0xfff0a5,0x67dce0,0xffffff][i%3],Math.cos(a)*.4,Math.sin(a)*.4,.29);sprinkle.rotation.z=a;}}
+ }
+ if(type==='square'){
+  if(variant===0){box(1.05,1.35,.5,0x9c582b);box(.46,1.18,.04,0xcf8a45,-.25,0,.27);box(.46,1.18,.04,0xcf8a45,.25,0,.27);for(const x of [-.09,.09])box(.035,.18,.05,0xffd86a,x,0,.31);}
+  if(variant===1){box(.95,1.2,.32,0x1879af);box(.82,1.08,.27,0xffedbd,.035,0,.015);box(.95,1.2,.04,0x299dcc,0,0,.18);box(.06,1.2,.36,0x155b89,-.45);box(.48,.1,.02,0xffd04c,.07,.25,.21);box(.35,.04,.02,0xf1f6e6,.07,.05,.21);}
+  if(variant===2){box(1.2,1.05,.12,0xffbd45);box(.92,.78,.03,0x9cdeeb,0,0,.08);const hill=triangle(.62,.02,0x4d9d48,.11);hill.position.y=-.14;ball(.13,0xffdf52,.26,.2,.12).scale.z=.15;}
+  if(variant===3){box(.94,1.4,.16,0x754624);box(.77,1.23,.08,0xc18444,0,0,.1);for(const y of [-.3,.3])box(.59,.42,.035,0xa96730,0,y,.16);ball(.065,0xffd05b,.28,-.02,.22);}
+ }
+ if(type==='triangle'){
+  if(variant===0){triangle(1.05,.25,0x2a9b49);triangle(.91,.27,0xf3ecbb,.025);triangle(.8,.29,0xf04d61,.05);for(const [x,y] of [[0,.25],[-.19,-.15],[.19,-.15],[0,-.3]]){const seed=ball(.04,0x382734,x,y,.22);seed.scale.set(.6,1.5,.3);}}
+  if(variant===1){triangle(1.05,.22,0xc68a40);triangle(.92,.24,0xffd452,.03);box(1.3,.13,.28,0xe6a44d,0,-.48);for(const [x,y] of [[0,.24],[-.22,-.22],[.22,-.22]]){const topping=ball(.1,0xc9452e,x,y,.18);topping.scale.z=.2;}}
+  if(variant===2){triangle(1,.42,0xe9b267);triangle(.97,.08,0xfff2d1,.24);triangle(.97,.04,0xe57aa1,.05);ball(.1,0xe64351,0,.12,.33);}
+  if(variant===3){triangle(1.1,.09,0x43bfd0,0,true);for(let i=0;i<9;i++)box(.018,i%2?.09:.15,.015,0x185b79,-.52+i*.13,-.48,.06);}
+ }
+ const halo=ring(.94,.045,0xffd52b,-.32);halo.castShadow=false;
+ return token;
+}
+function disposeItem(obj){
+ scene.remove(obj);
+ obj.traverse(part=>{if(part.isMesh){part.geometry.dispose();part.material.dispose();}});
+}
+function spawnItem(z){
+ const lane=Math.random()<.5?-1:1;
+ const type=shapes[Math.floor(Math.random()*3)];
+ const obj=makeShape(type);obj.position.set(lane*2,1.05,z);
+ scene.add(obj);items.push({obj,lane,type,passed:false});
+}
+let nextSpawnZ = -132;
+for(let i=0;i<8;i++)spawnItem(-20-i*16);
+
+// Game state
+let lane=0, score=0, distance=0, lives=3, speed=0, running=false, mode='manual', serialPort=null, reader=null, readLoop=false;
+let target='oval', objectsThisCommand=0, lastFrame=performance.now(), paused=false;
+document.getElementById('pauseBtn').onclick=()=>{
+ if(!running)return;
+ paused=!paused;
+ document.getElementById('pauseBtn').textContent=paused?'▶':'Ⅱ';
+ document.getElementById('pauseBtn').setAttribute('aria-label',paused?'Lanjutkan permainan':'Jeda permainan');
+ if('speechSynthesis' in window){if(paused)speechSynthesis.pause();else speechSynthesis.resume();}
+};
+const $=id=>document.getElementById(id);
+const menuContent=$('panel').innerHTML;
+let hallPulses=0;
+function bindMenu(){
+ $('connectBtn').onclick=connectArduino;
+ $('manualBtn').onclick=()=>{mode='manual';$('modePill').textContent='Mode: Tombol';setStatus('Mode tombol aktif. Tekan 1 untuk belok kiri, 2 untuk belok kanan, 3 untuk mengayuh.');startGame();};
+ if(serialPort && readLoop){
+  $('connectBtn').textContent='▶ Main dengan Arduino tersambung';
+  $('connectBtn').onclick=()=>{mode='arduino';$('modePill').textContent='Mode: Arduino tersambung';setStatus('Arduino tersambung. Dekatkan-jauhkan magnet untuk mengayuh; setang untuk belok.');startGame();};
+ }
+}
+function returnToMenu(){
+ running=false;paused=false;speed=0;
+ if('speechSynthesis' in window){speechSynthesis.cancel();speechSynthesis.resume();}
+ $('pauseBtn').textContent='Ⅱ';
+ $('panel').innerHTML=menuContent;bindMenu();
+ $('overlay').style.display='flex';
+ $('prompt').textContent='Bersiap menjadi pemburu bentuk!';
+ setStatus('Menu utama. Koneksi Arduino yang aktif tetap dipertahankan.');
+}
+$('menuBtn').onclick=returnToMenu;
+$('homeBtn').onclick=returnToMenu;
+function setStatus(t){$('status').textContent=t}
+// Synthesized effects use a separate audio channel, never the speech queue.
+let effectAudio=null;
+function unlockEffects(){
+ try{
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(!Audio)return;
+  if(!effectAudio)effectAudio=new Audio();
+  if(effectAudio.state==='suspended')effectAudio.resume().catch(()=>{});
+ }catch(e){/* Gameplay remains available when audio is blocked. */}
+}
+document.addEventListener('pointerdown',unlockEffects);
+document.addEventListener('keydown',unlockEffects);
+function playEffect(correct){
+ if(!effectAudio||effectAudio.state!=='running')return;
+ const now=effectAudio.currentTime;
+ function tone(frequency,offset,duration,volume,type,endFrequency){
+  const osc=effectAudio.createOscillator(),gain=effectAudio.createGain();
+  osc.type=type;osc.frequency.setValueAtTime(frequency,now+offset);
+  if(endFrequency)osc.frequency.exponentialRampToValueAtTime(endFrequency,now+offset+duration);
+  gain.gain.setValueAtTime(0,now+offset);
+  gain.gain.linearRampToValueAtTime(volume,now+offset+.008);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+offset+duration);
+  osc.connect(gain);gain.connect(effectAudio.destination);
+  osc.start(now+offset);osc.stop(now+offset+duration+.02);
+  osc.onended=()=>{osc.disconnect();gain.disconnect();};
+ }
+ if(correct){tone(1046.5,0,.16,.12,'sine');tone(1568,.075,.23,.1,'sine');tone(2093,.075,.14,.035,'sine');}
+ else {tone(165,0,.25,.16,'sine',65);tone(82,0,.2,.05,'triangle',45);}
+}
+function speak(text){
+ if(!('speechSynthesis' in window)) return;
+ // Instruksi terbaru menggantikan ucapan lama, tanpa antrean.
+ speechSynthesis.cancel();
+ speechSynthesis.resume();
+ const u=new SpeechSynthesisUtterance(text);
+ u.lang='id-ID';
+ u.rate=1;
+ u.pitch=1.05;
+ speechSynthesis.speak(u);
+}
+const instructionWords={oval:'lengkung',square:'segi empat',triangle:'segitiga'};
+function targetInstruction(){return 'Pilih bentuk '+instructionWords[target];}
+function chooseTarget(){
+ const choices=shapes.filter(shape=>shape!==target);
+ target=choices[Math.floor(Math.random()*choices.length)];
+ $('prompt').textContent='🔊 '+targetInstruction();
+ speak(targetInstruction());
+}
+function updateHUD(){
+ $('score').textContent=score; $('distance').textContent=Math.floor(distance); $('lives').textContent=lives;
+}
+function startGame(){
+ unlockEffects();
+ score=0;distance=0;lives=3;speed=0;lane=-1;objectsThisCommand=0;running=true;paused=false;
+ $('pauseBtn').textContent='Ⅱ';$('pauseBtn').setAttribute('aria-label','Jeda permainan');
+ if('speechSynthesis' in window){speechSynthesis.cancel();speechSynthesis.resume();}
+ for(const it of items)disposeItem(it.obj);items.length=0;
+ nextSpawnZ = -132;
+for(let i=0;i<8;i++)spawnItem(-20-i*16);
+ $('overlay').style.display='none'; updateHUD();chooseTarget();
+}
+function endGame(){
+ running=false; $('overlay').style.display='flex';
+ $('panel').innerHTML=`<h2>Hebat! 🚲</h2><p>Skor kamu <b>${score}</b> dan jarak <b>${Math.floor(distance)}</b>.</p><p>Ayo coba lagi dan kenali lebih banyak bentuk!</p><button id="againBtn">Main Lagi</button><button id="endMenuBtn" class="secondary">⌂ Kembali ke Menu</button>`;
+ $('againBtn').onclick=startGame;
+ $('endMenuBtn').onclick=returnToMenu;
+}
+function steer(n){
+ if(!running)return;
+ if(n===1)return; // lurus: tetap di jalur saat ini
+ if(n===2)lane=1;
+ if(n===3)lane=-1;
+}
+function pedal(){
+ if(running && !paused) speed=Math.min(speed+3,13);
+}
+// Kode tombol untuk siswa: 1 = belok kiri, 2 = belok kanan, 3 = kayuh.
+// (Kode Arduino berbeda: 1=lurus, 2=kanan, 3=kiri, 4=pulsa magnet.)
+function runButtonCode(code){
+ if(code===1)steer(3);      // 1 -> belok kiri
+ else if(code===2)steer(2); // 2 -> belok kanan
+ else if(code===3)pedal();  // 3 -> mengayuh
+}
+$('leftBtn').onclick=()=>runButtonCode(1);
+$('rightBtn').onclick=()=>runButtonCode(2);
+$('pedalBtn').onclick=()=>runButtonCode(3);
+$('repeatBtn').onclick=()=>{if(running && !paused)speak(targetInstruction());};
+$('restartBtn').onclick=()=>{if(running)startGame();};
+window.addEventListener('keydown',e=>{
+ if(e.repeat && e.key!=='3')return;
+ if(e.key==='1')runButtonCode(1);
+ else if(e.key==='2')runButtonCode(2);
+ else if(e.key==='3')runButtonCode(3);
+});
+
+// USB CDC-ACM driver for the user's Uno (2341:0043), no external driver library.
+class UnoUsbPort {
+ constructor(device){this.device=device;this.readable=null;}
+ async open({baudRate}){
+  const d=this.device;
+  try{
+   await d.open();
+   if(!d.configuration)await d.selectConfiguration(d.configurations[0].configurationValue);
+   let control=null,data=null;
+   for(const iface of d.configuration.interfaces){
+    for(const alt of iface.alternates){
+     if(alt.interfaceClass===2 && alt.interfaceSubclass===2)control={iface,alt};
+     if(alt.interfaceClass===10 && alt.endpoints.some(e=>e.direction==='in' && e.type==='bulk'))data={iface,alt};
+    }
+   }
+   if(!control||!data)throw new Error('Perangkat bukan USB CDC Arduino Uno yang didukung.');
+   for(const entry of [control,data]){
+    await d.claimInterface(entry.iface.interfaceNumber);
+    if(entry.iface.alternate.alternateSetting!==entry.alt.alternateSetting)
+     await d.selectAlternateInterface(entry.iface.interfaceNumber,entry.alt.alternateSetting);
+   }
+   const index=control.iface.interfaceNumber;
+   const coding=new Uint8Array(7);
+   new DataView(coding.buffer).setUint32(0,baudRate,true);
+   coding[6]=8; // 8 data bits, no parity, 1 stop bit
+   const request=(request,value,payload)=>d.controlTransferOut({requestType:'class',recipient:'interface',request,value,index},payload);
+   let result=await request(0x20,0,coding);
+   if(result.status!=='ok')throw new Error('Gagal mengatur baud rate USB.');
+   result=await request(0x22,3); // DTR + RTS: enable the Uno serial connection
+   if(result.status!=='ok')throw new Error('Gagal mengaktifkan serial USB.');
+   const endpoint=data.alt.endpoints.find(e=>e.direction==='in' && e.type==='bulk');
+   this.readable=new ReadableStream({
+    async pull(controller){
+     try{
+      const packet=await d.transferIn(endpoint.endpointNumber,endpoint.packetSize*4);
+      if(packet.status!=='ok')throw new Error('Transfer USB gagal: '+packet.status);
+      if(packet.data && packet.data.byteLength)
+       controller.enqueue(new Uint8Array(packet.data.buffer,packet.data.byteOffset,packet.data.byteLength));
+     }catch(err){controller.error(err);}
+    }
+   });
+  }catch(err){await this.close();throw err;}
+ }
+ async close(){if(this.device.opened)await this.device.close().catch(()=>{});}
+}
+let connectingArduino=false;
+// Penanda versi agar mudah memastikan file terbaru yang dibuka di IFP.
+const CONNECT_VERSION='USB-v3';
+const hex4=n=>n.toString(16).padStart(4,'0').toUpperCase();
+function describeUsb(d){return (d.productName||'Perangkat USB')+' '+hex4(d.vendorId)+':'+hex4(d.productId);}
+// Chip USB-serial yang umum dipakai Arduino klon (bukan USB CDC standar).
+function usbChipName(vendorId){
+ return {0x1a86:'CH340/CH341',0x0403:'FTDI',0x10c4:'CP210x',0x067b:'PL2303'}[vendorId]||null;
+}
+// Arduino serial input: 1=center, 2=right, 3=left, 4=magnet pulse
+async function connectArduino(){
+ if(connectingArduino)return;
+ connectingArduino=true;
+ try{
+  // Chrome Android/IFP punya navigator.serial, tetapi hanya untuk Bluetooth,
+  // sehingga Arduino USB tidak pernah muncul di daftar. Di Android pakai WebUSB.
+  // IFP sering memakai "situs desktop" (UA berisi Linux, bukan Android); layar sentuh + Linux dianggap IFP/Android.
+  const isAndroid=/Android/i.test(navigator.userAgent)||(navigator.userAgentData&&navigator.userAgentData.platform==='Android')||
+   (/Linux/i.test(navigator.userAgent)&&navigator.maxTouchPoints>0)||location.protocol==='content:';
+  if(isAndroid && !('usb' in navigator)){
+   // Jangan buka dialog port serial: di Android dialog itu tidak bisa menampilkan Arduino USB.
+   setStatus('['+CONNECT_VERSION+'] Chrome di IFP ini tidak mengizinkan akses USB untuk halaman ini ('+location.protocol+', aman='+window.isSecureContext+'). Buka game lewat alamat https:// (mis. GitHub Pages/Netlify), bukan dari File Manager.');
+   return;
+  }
+  if('serial' in navigator && !isAndroid){
+   // Jalur utama untuk komputer: Web Serial.
+   serialPort=await navigator.serial.requestPort();
+   await serialPort.open({baudRate:9600});
+  }else if('usb' in navigator){
+   // Jalur untuk IFP/Android: WebUSB langsung ke Arduino Uno.
+   // Semua perangkat USB ditampilkan agar Arduino klon tidak tersaring dari daftar.
+   setStatus('['+CONNECT_VERSION+'] Memilih Arduino lewat USB...');
+   const device=await navigator.usb.requestDevice({filters:isAndroid?[]:[{vendorId:0x2341},{vendorId:0x2a03}]});
+   const chip=usbChipName(device.vendorId);
+   if(chip){
+    throw new Error('Perangkat terdeteksi ('+describeUsb(device)+') tetapi memakai chip '+chip+' (Arduino klon). Game ini baru mendukung Arduino Uno dengan chip USB asli.');
+   }
+   serialPort=new UnoUsbPort(device);
+   try{await serialPort.open({baudRate:9600});}
+   catch(e){throw new Error(e.message+' Perangkat: '+describeUsb(device)+'.');}
+  }else{
+   setStatus('Browser ini belum mendukung akses USB. Buka game di Google Chrome melalui HTTPS.');
+   return;
+  }
+  mode='arduino';$('modePill').textContent='Mode: Arduino tersambung';
+  setStatus('Arduino tersambung. Putar roda untuk mengayuh; setang untuk belok.');
+  $('connectBtn').textContent='✓ Arduino tersambung';
+  startGame(); readArduino();
+ }catch(err){
+  serialPort=null;
+  const msg=(err && err.name==='NotFoundError')?'Tidak ada perangkat dipilih / tidak ada perangkat USB yang terlihat oleh Chrome. Pastikan Arduino tercolok dan aplikasi lain (mis. Serial USB Terminal) sudah ditutup.':
+   (err && err.name==='SecurityError')?'Akses USB ditolak. Izinkan Chrome mengakses Arduino saat Android bertanya, lalu coba lagi.':
+   (err && err.name==='NetworkError')?'Arduino sedang dipakai aplikasi lain. Tutup aplikasi tersebut, cabut-colok Arduino, lalu coba lagi.':
+   ((err&&err.message)||err);
+  setStatus('['+CONNECT_VERSION+'] Arduino belum tersambung: '+msg);
+ }finally{connectingArduino=false;}
+}
+function handleArduinoLine(line){
+ const text=line.trim();
+ if(text.startsWith('HALL:')){
+  setStatus('Sensor Hall D2: '+text.slice(5)+' | Pulsa diterima: '+hallPulses+' | Dekatkan lalu jauhkan magnet untuk mengayuh.');
+  return;
+ }
+ const n=Number(text);
+ if(n===4){
+  hallPulses++;
+  if(mode==='arduino')pedal();
+  setStatus('✓ Pulsa Hall diterima: '+hallPulses+' | Kecepatan: '+speed.toFixed(1)+(paused?' (jeda)':!running?' (di menu)':''));
+ }else if(mode==='arduino' && n>=1 && n<=3){steer(n);}
+}
+async function readArduino(){
+ if(!serialPort||readLoop)return;readLoop=true;
+ const decoder=new TextDecoderStream();
+ serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
+ const reader=decoder.readable.getReader();
+ let buffer='';
+ try{
+  while(true){
+   const {value,done}=await reader.read();if(done)break;
+   buffer+=value;
+   const lines=buffer.split(/\r?\n/);buffer=lines.pop();
+   for(const line of lines){
+    handleArduinoLine(line);
+   }
+  }
+ }catch(e){setStatus('Koneksi Arduino terputus. '+e.message);}
+ finally{readLoop=false;reader.releaseLock();}
+}
+bindMenu();
+
+// Resize renderer to actual game frame
+function resize(){
+ const w=wrap.clientWidth,h=wrap.clientHeight;
+ renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(wrap);resize();
+
+function animate(now){
+ requestAnimationFrame(animate);
+ const dt=Math.min((now-lastFrame)/1000,.05);lastFrame=now;
+ if(running && !paused){
+  // gradually slow if no new magnet pulses; magnet events accelerate
+  speed=Math.max(0,speed-dt*1.4);
+  const travel=speed*dt;
+  distance+=travel*.8;
+  rider.position.x+=(lane*2-rider.position.x)*Math.min(1,dt*8);
+  rider.rotation.z+=( (lane*2-rider.position.x)*-.035-rider.rotation.z)*Math.min(1,dt*5);
+  for(const d of dashes){d.position.z+=travel*1.8;if(d.position.z>9)d.position.z=-66;}
+  for(const t of trees){t.position.z+=travel*1.5;if(t.position.z>12)t.position.z=-65;}
+  for(const c of clouds){c.position.z+=travel*.22;if(c.position.z>15)c.position.z=-65;}
+  for(const it of items){
+   it.obj.position.z+=travel*1.8;
+   it.obj.rotation.y+=dt*1.5;
+   if(!it.passed && it.obj.position.z>3.9){
+    it.passed=true;
+    // Hanya benda yang dipilih (di jalur pemain) dihitung, benar maupun salah.
+    if(it.lane===lane){
+     objectsThisCommand++;
+     if(it.type===target){
+      score+=10;
+      playEffect(true);
+     } else {
+      lives--;
+      playEffect(false);
+     }
+    }
+    updateHUD();
+
+    if(lives<=0){endGame();break;}
+
+    // Ganti instruksi setelah 5 pilihan, bukan setelah 5 benda lewat. Jarak antarbenda dibuat lebih renggang agar anak punya waktu mendengar dan memilih.
+    if(objectsThisCommand>=5){
+     objectsThisCommand=0;
+     chooseTarget();
+    }
+
+   }
+  }
+  for(let i=items.length-1;i>=0;i--){if(items[i].passed){disposeItem(items[i].obj);items.splice(i,1);}}
+  if(items.length<8){nextSpawnZ=Math.min(-20,...items.map(it=>it.obj.position.z))-16;spawnItem(nextSpawnZ);}
+  for(const wheel of wheels)wheel.rotation.x-=travel*1.8/.47;
+  rider.position.y=Math.sin(distance*3)*Math.min(speed,.8)*.025;
+  updateHUD();
+  // slight movement effect
+  camera.position.x+=(rider.position.x*.16-camera.position.x)*dt*2;
+ }
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
