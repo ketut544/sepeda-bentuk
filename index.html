@@ -496,7 +496,10 @@ function handleArduinoLine(line){
   hallPulses++;
   if(mode==='arduino')pedal();
   setStatus('✓ Pulsa Hall diterima: '+hallPulses+' | Kecepatan: '+speed.toFixed(1)+(paused?' (jeda)':!running?' (di menu)':''));
- }else if(mode==='arduino' && n>=1 && n<=3){steer(n);}
+ }else if(mode==='arduino' && n>=1 && n<=3){
+  // Balik arah setang Arduino; lurus dan kontrol tombol tetap sama.
+  steer(n===2?3:n===3?2:n);
+ }
 }
 async function readArduino(){
  if(!serialPort||readLoop)return;readLoop=true;
